@@ -1,0 +1,31 @@
+Ok so :
+
+first thing first, we need to know what all types JSON usually contains - 
+1. Null (ofc)
+2. True
+3. False
+4. Number (int, float, yada yada)
+5. String
+6. Object
+7. Array
+
+Mmmmm but the fact is I need one space to keep all these type of data whenever tthey come, for say there's a variable A it can hold any of the above data types without manual unsafe casting or anything, it should be during the runtime, because you(whoever is parsing a json) never know what it contains...
+
+1 thing gets clear, we will know the type in compile time...Am unsure but yea.
+
+So after a bit of surfing on web,we can use Union(certainly), but we also need to define the labels beforehand, indeed we going for "Enums". 
+we can have 7 enums like JsonNum, JsonStr, etc. 
+
+So Union would only store whatever comes but to know what is comming it will use enum's label.
+
+Enum label -> Union 
+Would be writing it in comments again !
+
+You fear Union ?? Me too feared and hence had
+an alternative approach to it
+that was why not have (type, index) pair instead of (union, enum)
+like 7 diff types to pick from, and maybe 7 diff variables ??
+but its very dumb, cuz imagine in ur code there would be stuff like 
+if (string) -> str_store(index) and shit like that. So yea this bad thought I had but yea I googled a bit and asked Grok, and my take is certainly so bad (only in case of JSON parsing) it can be used at other places efficiently.
+
+Anyways,
