@@ -13,6 +13,22 @@ typedef enum{
   JsonArr,
 }jsonType;
 
+enum TokenType {
+  TOK_LBRACE,    // {
+  TOK_RBRACE,    // }
+  TOK_LBRACKET,  // [
+  TOK_RBRACKET,  // ]
+  TOK_COLON,     // :
+  TOK_COMMA,     // ,
+  TOK_STRING,
+  TOK_NUMBER,
+  TOK_TRUE,
+  TOK_FALSE,
+  TOK_NULL,
+  TOK_EOF
+};
+
+
 typedef struct {
   char *data;
   size_t length;
@@ -31,10 +47,19 @@ typedef union{
   jsonArray jsonArr;
 }jsonValue;
 
+typedef struct {
+  enum TokenType type;
+  union {
+    jsonString str;
+    double value;
+  } value;
+} Token;
+
 struct jsonNode{
   jsonType type;
   jsonValue value;
 };
+
 
 jsonNode create_str(char *data, size_t len) {
     jsonString loc_str;
@@ -64,12 +89,24 @@ void json_free(jsonNode *node) {
   switch(node->type){
     case JsonStr: free(node->value.jsonStr.data);
                   break;
-    case JsonArr: for(int i=0; i>)
-                    json_free(&element);
-                  free(array.data);
+    case JsonArr: for(int i=0; i<node->value.jsonArr.length;i++)
+                    json_free(&node->value.jsonArr.data[i]);
+                  free(node->value.jsonArr.data);
+                  break;
     default: break;
   }
 }
+
+Token next_token() {
+  
+}
+
+jsonNode parse_value() {
+
+}
+jsonNode parse_array();
+jsonNode parse_object();
+
 
 int main() {
    printf("Hello World\n");
