@@ -60,6 +60,11 @@ struct jsonNode{
   jsonValue value;
 };
 
+typedef struct {
+    const char* input;
+    size_t pos;
+    size_t length;
+} Lexer;
 
 jsonNode create_str(char *data, size_t len) {
     jsonString loc_str;
@@ -97,8 +102,39 @@ void json_free(jsonNode *node) {
   }
 }
 
-Token next_token() {
-  
+Token next_token(Lexer *lexer) {
+    Token tok;
+    while (lexer->pos < lexer->length && (lexer->input[lexer->pos] == ' '  ||
+                                          lexer->input[lexer->pos] == '\n' ||
+                                          lexer->input[lexer->pos] == '\t' || 
+                                          lexer->input[lexer->pos] == '\r')) {
+          lexer->pos++;
+    }
+    if(lexer->pos >= lexer->length) 
+      tok.type = TOK_EOF; return tok;
+    char c = lexer->input[lexer->pos];
+    swtich(c){
+      case '{' : lexer->pos++;
+                 tok.type = TOK_LBRACE;
+                 return tok;
+                 break;
+      case '}' : lexer->pos++;
+                 tok.type = TOK_RBRACE;
+                 return tok;
+                 break;
+      case '[' : lexer->pos++;
+                 tok.type = TOK_LBRACKET;
+                 return tok;
+                 break;
+      case ']' : lexer->pos++;
+                 tok.type = TOK_RBRACKET;
+                 return tok;
+                 break;
+      case ':' : return TOK_COLON;
+                 break;
+      case '"' : 
+    }
+  }
 }
 
 jsonNode parse_value() {
