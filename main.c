@@ -110,32 +110,32 @@ Token next_token(Lexer *lexer) {
                                           lexer->input[lexer->pos] == '\r')) {
           lexer->pos++;
     }
-    if(lexer->pos >= lexer->length) 
+    if(lexer->pos >= lexer->length) { 
       tok.type = TOK_EOF; return tok;
+    }
     char c = lexer->input[lexer->pos];
-    swtich(c){
+    switch(c){
       case '{' : lexer->pos++;
                  tok.type = TOK_LBRACE;
                  return tok;
-                 break;
       case '}' : lexer->pos++;
                  tok.type = TOK_RBRACE;
                  return tok;
-                 break;
       case '[' : lexer->pos++;
                  tok.type = TOK_LBRACKET;
                  return tok;
-                 break;
       case ']' : lexer->pos++;
                  tok.type = TOK_RBRACKET;
                  return tok;
-                 break;
-      case ':' : return TOK_COLON;
-                 break;
-      case '"' : 
+      case ':' : lexer->pos++;
+                 tok.type =TOK_COLON;
+                 return tok;
+      case '"' : while(int i=0;i<lexer->pos;i++) 
     }
+    
+    fprintf(stderr, "Unexpected character: %c\n", c);
+    exit(1);
   }
-}
 
 jsonNode parse_value() {
 
