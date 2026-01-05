@@ -130,7 +130,21 @@ Token next_token(Lexer *lexer) {
       case ':' : lexer->pos++;
                  tok.type =TOK_COLON;
                  return tok;
-      case '"' : while(int i=0;i<lexer->pos;i++) 
+      case '"' :  lexer->pos++;
+                  size_t start = lexer->pos;
+                  while(lexer->pos < lexer->length && lexer->input[lexer->pos] != '"') {
+                        lexer->pos++;
+                  }
+                  if(lexer->pos >= lexer->length) {
+                      printf("undetermined string");
+                      exit(1);
+                  }
+                  size_t len = lexer->pos - start;
+                  tok.type = TOK_STRING;
+                  tok.value.str.data = &lexer->input[start];
+                  tok.value.str.length = len;
+                  lexer->pos++;
+                  return tok;
     }
     
     fprintf(stderr, "Unexpected character: %c\n", c);
