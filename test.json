@@ -1,0 +1,11 @@
+{
+  "name": "jsonsaur",
+  "working": true,
+  "score": 99.5,
+  "tags": ["c", "json", null],
+  "nested": {
+    "empty_array": [],
+    "empty_object": {},
+    "done": false
+  }
+}

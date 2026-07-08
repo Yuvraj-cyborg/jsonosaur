@@ -342,8 +342,111 @@ jsonNode parse_object(Parser *parser) {
   }
 }
 
+jsonNode parse_json(const char *input) {
+  Parser parser;
+  parser.lexer.input = input;
+  parser.lexer.pos = 0;
+  parser.lexer.length = strlen(input);
+  parser_next(&parser);
+
+  jsonNode root = parse_value(&parser);
+  if(parser.current.type != TOK_EOF) {
+    json_free(&root);
+    parse_error("Unexpected token after JSON value");
+  }
+
+  return root;
+}
+
+void print_indent(int indent) {
+  for(int i=0; i<indent; i++) {
+    putchar(' ');
+  }
+}
+
+void print_json_string(jsonString str) {
+  putchar('"');
+  fwrite(str.data, 1, str.length, stdout);
+  putchar('"');
+}
+
+void print_json(jsonNode *node, int indent) {
+  switch(node->type) {
+    case JsonNum: printf("%g", node->value.jsonNum);
+                  break;
+    case JsonStr: print_json_string(node->value.jsonStr);
+                  break;
+    case JsonNull: printf("null");
+                   break;
+    case JsonTrue: printf("true");
+                   break;
+    case JsonFalse: printf("false");
+                    break;
+    case JsonArr: printf("[");
+                  for(size_t i=0; i<node->value.jsonArr.length; i++) {
+                    if(i == 0) printf("\n");
+                    print_indent(indent + 2);
+                    print_json(&node->value.jsonArr.data[i], indent + 2);
+                    if(i + 1 < node->value.jsonArr.length) printf(",");
+                    printf("\n");
+                  }
+                  if(node->value.jsonArr.length > 0) print_indent(indent);
+                  printf("]");
+                  break;
+    case JsonObj: printf("{");
+                  for(size_t i=0; i<node->value.jsonObj.length; i++) {
+                    if(i == 0) printf("\n");
+                    print_indent(indent + 2);
+                    print_json_string(node->value.jsonObj.data[i].key);
+                    printf(": ");
+                    print_json(&node->value.jsonObj.data[i].value, indent + 2);
+                    if(i + 1 < node->value.jsonObj.length) printf(",");
+                    printf("\n");
+                  }
+                  if(node->value.jsonObj.length > 0) print_indent(indent);
+                  printf("}");
+                  break;
+  }
+}
+
+char *read_file(const char *path) {
+  FILE *file = fopen(path, "rb");
+  if(file == NULL) {
+    perror(path);
+    exit(1);
+  }
+
+  fseek(file, 0, SEEK_END);
+  long length = ftell(file);
+  if(length < 0) {
+    perror(path);
+    fclose(file);
+    exit(1);
+  }
+  rewind(file);
+
+  char *data = malloc((size_t)length + 1);
+  size_t read_len = fread(data, 1, (size_t)length, file);
+  if(read_len != (size_t)length) {
+    perror(path);
+    fclose(file);
+    free(data);
+    exit(1);
+  }
+
+  data[length] = '\0';
+  fclose(file);
+  return data;
+}
 
 int main() {
-   printf("Hello World\n");
-   return 0;
+  char *input = read_file("test.json");
+  jsonNode root = parse_json(input);
+
+  print_json(&root, 0);
+  printf("\n");
+
+  json_free(&root);
+  free(input);
+  return 0;
 }
