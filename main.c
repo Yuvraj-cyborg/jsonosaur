@@ -37,16 +37,23 @@ typedef struct {
 }jsonString;
 
 typedef struct jsonNode jsonNode;   
+typedef struct jsonPair jsonPair;
 
 typedef struct {
   jsonNode *data;
   size_t length;
 }jsonArray;
 
+typedef struct {
+  jsonPair *data;
+  size_t length;
+}jsonObject;
+
 typedef union{
   double jsonNum;
   jsonString jsonStr;
   jsonArray jsonArr;
+  jsonObject jsonObj;
 }jsonValue;
 
 typedef struct {
@@ -60,6 +67,11 @@ typedef struct {
 struct jsonNode{
   jsonType type;
   jsonValue value;
+};
+
+struct jsonPair{
+  jsonString key;
+  jsonNode value;
 };
 
 typedef struct {
@@ -95,6 +107,16 @@ jsonNode create_arr(size_t len) {
   return new_node;
 }
 
+jsonNode create_obj(size_t len) {
+  jsonObject loc_obj;
+  loc_obj.data = malloc(len * sizeof(jsonPair));
+  loc_obj.length = len;
+  jsonNode new_node;
+  new_node.type = JsonObj;
+  new_node.value.jsonObj = loc_obj;
+  return new_node;
+}
+
 jsonNode create_num(double value) {
   jsonNode new_node;
   new_node.type = JsonNum;
@@ -117,6 +139,12 @@ void json_free(jsonNode *node) {
     case JsonArr: for(size_t i=0; i<node->value.jsonArr.length;i++)
                     json_free(&node->value.jsonArr.data[i]);
                   free(node->value.jsonArr.data);
+                  break;
+    case JsonObj: for(size_t i=0; i<node->value.jsonObj.length;i++) {
+                    free(node->value.jsonObj.data[i].key.data);
+                    json_free(&node->value.jsonObj.data[i].value);
+                  }
+                  free(node->value.jsonObj.data);
                   break;
     default: break;
   }
@@ -269,9 +297,49 @@ jsonNode parse_array(Parser *parser) {
 }
 
 jsonNode parse_object(Parser *parser) {
-  (void)parser;
-  parse_error("Object parsing is not ready yet");
-  return create_literal(JsonNull);
+  jsonNode obj = create_obj(0);
+  parser_next(parser);
+
+  if(parser->current.type == TOK_RBRACE) {
+    parser_next(parser);
+    return obj;
+  }
+
+  while(1) {
+    if(parser->current.type != TOK_STRING) {
+      parse_error("Expected string key in object");
+    }
+
+    jsonString key;
+    key.length = parser->current.value.str.length;
+    key.data = malloc(key.length);
+    memcpy(key.data, parser->current.value.str.data, key.length);
+    parser_next(parser);
+
+    if(parser->current.type != TOK_COLON) {
+      parse_error("Expected colon after object key");
+    }
+
+    parser_next(parser);
+    jsonNode value = parse_value(parser);
+
+    obj.value.jsonObj.data = realloc(obj.value.jsonObj.data, (obj.value.jsonObj.length + 1) * sizeof(jsonPair));
+    obj.value.jsonObj.data[obj.value.jsonObj.length].key = key;
+    obj.value.jsonObj.data[obj.value.jsonObj.length].value = value;
+    obj.value.jsonObj.length++;
+
+    if(parser->current.type == TOK_COMMA) {
+      parser_next(parser);
+      continue;
+    }
+
+    if(parser->current.type == TOK_RBRACE) {
+      parser_next(parser);
+      return obj;
+    }
+
+    parse_error("Expected comma or closing brace in object");
+  }
 }
 
 
