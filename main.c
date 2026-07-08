@@ -68,6 +68,11 @@ typedef struct {
     size_t length;
 } Lexer;
 
+typedef struct {
+  Lexer lexer;
+  Token current;
+} Parser;
+
 jsonNode create_str(const char *data, size_t len) {
     jsonString loc_str;
     loc_str.data = malloc(len);
@@ -87,6 +92,19 @@ jsonNode create_arr(size_t len) {
   jsonNode new_node;
   new_node.type = JsonArr;
   new_node.value.jsonArr = loc_arr;
+  return new_node;
+}
+
+jsonNode create_num(double value) {
+  jsonNode new_node;
+  new_node.type = JsonNum;
+  new_node.value.jsonNum = value;
+  return new_node;
+}
+
+jsonNode create_literal(jsonType type) {
+  jsonNode new_node;
+  new_node.type = type;
   return new_node;
 }
 
@@ -155,6 +173,10 @@ Token next_token(Lexer *lexer) {
     if(c == '-' || isdigit(c)) {
       char *end;
       tok.value.value = strtod(&lexer->input[lexer->pos], &end);
+      if(end == &lexer->input[lexer->pos]) {
+        fprintf(stderr, "Invalid number\n");
+        exit(1);
+      }
       tok.type = TOK_NUMBER;
       lexer->pos = end - lexer->input;
       return tok;
@@ -182,13 +204,75 @@ Token next_token(Lexer *lexer) {
     exit(1);
   }
 
-jsonNode parse_value() {
-  jsonNode node;
-  node.type = JsonNull;
-  return node;
+void parser_next(Parser *parser) {
+  parser->current = next_token(&parser->lexer);
 }
-jsonNode parse_array();
-jsonNode parse_object();
+
+void parse_error(const char *msg) {
+  fprintf(stderr, "%s\n", msg);
+  exit(1);
+}
+
+jsonNode parse_value(Parser *parser);
+jsonNode parse_array(Parser *parser);
+jsonNode parse_object(Parser *parser);
+
+jsonNode parse_value(Parser *parser) {
+  Token tok = parser->current;
+
+  switch(tok.type) {
+    case TOK_STRING: parser_next(parser);
+                     return create_str(tok.value.str.data, tok.value.str.length);
+    case TOK_NUMBER: parser_next(parser);
+                     return create_num(tok.value.value);
+    case TOK_TRUE: parser_next(parser);
+                   return create_literal(JsonTrue);
+    case TOK_FALSE: parser_next(parser);
+                    return create_literal(JsonFalse);
+    case TOK_NULL: parser_next(parser);
+                   return create_literal(JsonNull);
+    case TOK_LBRACKET: return parse_array(parser);
+    case TOK_LBRACE: return parse_object(parser);
+    default: parse_error("Expected JSON value");
+  }
+
+  return create_literal(JsonNull);
+}
+
+jsonNode parse_array(Parser *parser) {
+  jsonNode arr = create_arr(0);
+  parser_next(parser);
+
+  if(parser->current.type == TOK_RBRACKET) {
+    parser_next(parser);
+    return arr;
+  }
+
+  while(1) {
+    jsonNode item = parse_value(parser);
+    arr.value.jsonArr.data = realloc(arr.value.jsonArr.data, (arr.value.jsonArr.length + 1) * sizeof(jsonNode));
+    arr.value.jsonArr.data[arr.value.jsonArr.length] = item;
+    arr.value.jsonArr.length++;
+
+    if(parser->current.type == TOK_COMMA) {
+      parser_next(parser);
+      continue;
+    }
+
+    if(parser->current.type == TOK_RBRACKET) {
+      parser_next(parser);
+      return arr;
+    }
+
+    parse_error("Expected comma or closing bracket in array");
+  }
+}
+
+jsonNode parse_object(Parser *parser) {
+  (void)parser;
+  parse_error("Object parsing is not ready yet");
+  return create_literal(JsonNull);
+}
 
 
 int main() {
