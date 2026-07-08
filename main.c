@@ -1,4 +1,6 @@
+
 #include<stdio.h>
+#include<ctype.h>
 #include<stddef.h>
 #include<stdlib.h>
 #include<string.h>
@@ -66,7 +68,7 @@ typedef struct {
     size_t length;
 } Lexer;
 
-jsonNode create_str(char *data, size_t len) {
+jsonNode create_str(const char *data, size_t len) {
     jsonString loc_str;
     loc_str.data = malloc(len);
     loc_str.length = len;
@@ -94,7 +96,7 @@ void json_free(jsonNode *node) {
   switch(node->type){
     case JsonStr: free(node->value.jsonStr.data);
                   break;
-    case JsonArr: for(int i=0; i<node->value.jsonArr.length;i++)
+    case JsonArr: for(size_t i=0; i<node->value.jsonArr.length;i++)
                     json_free(&node->value.jsonArr.data[i]);
                   free(node->value.jsonArr.data);
                   break;
@@ -128,10 +130,13 @@ Token next_token(Lexer *lexer) {
                  tok.type = TOK_RBRACKET;
                  return tok;
       case ':' : lexer->pos++;
-                 tok.type =TOK_COLON;
+                  tok.type =TOK_COLON;
+                  return tok;
+      case ',' : lexer->pos++;
+                 tok.type = TOK_COMMA;
                  return tok;
       case '"' :  lexer->pos++;
-                  size_t start = lexer->pos;
+                   size_t start = lexer->pos;
                   while(lexer->pos < lexer->length && lexer->input[lexer->pos] != '"') {
                         lexer->pos++;
                   }
@@ -139,12 +144,38 @@ Token next_token(Lexer *lexer) {
                       printf("undetermined string");
                       exit(1);
                   }
-                  size_t len = lexer->pos - start;
-                  tok.type = TOK_STRING;
-                  tok.value.str.data = &lexer->input[start];
-                  tok.value.str.length = len;
-                  lexer->pos++;
-                  return tok;
+                   size_t len = lexer->pos - start;
+                   tok.type = TOK_STRING;
+                   tok.value.str.data = (char *)&lexer->input[start];
+                   tok.value.str.length = len;
+                   lexer->pos++;
+                   return tok;
+    }
+
+    if(c == '-' || isdigit(c)) {
+      char *end;
+      tok.value.value = strtod(&lexer->input[lexer->pos], &end);
+      tok.type = TOK_NUMBER;
+      lexer->pos = end - lexer->input;
+      return tok;
+    }
+
+    if(strncmp(&lexer->input[lexer->pos], "true", 4) == 0) {
+      lexer->pos += 4;
+      tok.type = TOK_TRUE;
+      return tok;
+    }
+
+    if(strncmp(&lexer->input[lexer->pos], "false", 5) == 0) {
+      lexer->pos += 5;
+      tok.type = TOK_FALSE;
+      return tok;
+    }
+
+    if(strncmp(&lexer->input[lexer->pos], "null", 4) == 0) {
+      lexer->pos += 4;
+      tok.type = TOK_NULL;
+      return tok;
     }
     
     fprintf(stderr, "Unexpected character: %c\n", c);
@@ -152,7 +183,9 @@ Token next_token(Lexer *lexer) {
   }
 
 jsonNode parse_value() {
-
+  jsonNode node;
+  node.type = JsonNull;
+  return node;
 }
 jsonNode parse_array();
 jsonNode parse_object();
